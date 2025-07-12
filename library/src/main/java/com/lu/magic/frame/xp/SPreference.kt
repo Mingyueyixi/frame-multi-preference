@@ -8,25 +8,28 @@ import com.lu.magic.frame.xp.annotation.GroupValue
 import com.lu.magic.frame.xp.annotation.ModeValue
 import com.lu.magic.frame.xp.annotation.PreferenceIdValue
 import com.lu.magic.frame.xp.bean.ContractRequest
+import com.lu.magic.frame.xp.bean.ContractResponse2
+import com.lu.magic.frame.xp.broadcast.ClientSession
+import com.lu.magic.frame.xp.socket.PreferencesSocketClient
 import com.lu.magic.frame.xp.socket.PreferencesSocketServer
 import com.lu.magic.frame.xp.socket.RequestTransfer
 import java.io.Serializable
 import java.util.concurrent.atomic.AtomicInteger
 
-class SPreference(val context: Context, val impl: SharedPreferences) : SharedPreferences {
+open class SPreference(val context: Context, val impl: SharedPreferences) : SharedPreferences {
 
     companion object {
         @JvmStatic
         fun initServer(context: Context, port: Int) {
-            PreferencesSocketServer(context.applicationContext, port).start()
+            PreferencesSocketServer.getServer(context.applicationContext, port).start()
         }
 
         @JvmStatic
         fun getRemoteImpl(
             context: Context, tableName: String, @PreferenceIdValue preferenceId: String, port: Int
-        ): SPreference {
-            val impl = RemotePreferences(context.applicationContext, tableName, preferenceId, port)
-            return SPreference(context.applicationContext, impl)
+        ): RemotePreference {
+            val impl = RemotePreferencesImpl(context.applicationContext, tableName, preferenceId, port)
+            return RemotePreference(context.applicationContext, impl)
         }
 
         @JvmStatic
@@ -35,6 +38,11 @@ class SPreference(val context: Context, val impl: SharedPreferences) : SharedPre
             return SPreference(context.applicationContext, impl)
         }
 
+        @JvmStatic
+        fun isServerConnected(port: Int): Boolean {
+            //判断是否能够连上服务端
+            return PreferencesSocketClient(port = port).testConnect();
+        }
     }
 
     override fun getAll(): MutableMap<String, *> {
@@ -82,46 +90,49 @@ class SPreference(val context: Context, val impl: SharedPreferences) : SharedPre
     }
 
 
-    class RemotePreferences(
+    class RemotePreferencesImpl(
         val context: Context, val tableName: String, @PreferenceIdValue val preferenceId: String, val port: Int
     ) : SharedPreferences {
 
         override fun getAll(): Map<String, *> {
-            return getValue(FunctionValue.GET_ALL, null, HashMap<Any, Any>(), Map::class.java) as Map<String, *>
+            return getValue(FunctionValue.GET_ALL, null, HashMap<Any, Any>(), Map::class.java).dataAsMapString
         }
 
-        override fun getString(key: String?, defValue: String?): String? {
-            return getValue(FunctionValue.GET_STRING, key, defValue, String::class.java)
+        override fun getString(key: String, defValue: String?): String? {
+            return getValue(FunctionValue.GET_STRING, key, defValue, String::class.java).getDataAsString(defValue)
         }
-
 
         override fun getStringSet(key: String, defValues: Set<String>?): Set<String>? {
-            return getValue(FunctionValue.GET_STRING_SET, key, defValues, Set::class.java) as Set<String>?
+            return getValue(FunctionValue.GET_STRING_SET, key, defValues, Set::class.java).getDataAsStringSet(defValues)
         }
 
         override fun getInt(key: String, defValue: Int): Int {
-            return getValue(FunctionValue.GET_INT, key, defValue, Int::class.java) ?: defValue
+            return getValue(FunctionValue.GET_INT, key, defValue, Int::class.java).getDataAsInt(defValue)
         }
 
         override fun getLong(key: String, defValue: Long): Long {
-            return getValue(FunctionValue.GET_LONG, key, defValue, Long::class.java) ?: defValue
+            return getValue(FunctionValue.GET_LONG, key, defValue, Long::class.java).getDataAsLong(defValue)
         }
 
         override fun getFloat(key: String, defValue: Float): Float {
-            return getValue(FunctionValue.GET_FLOAT, key, defValue, Float::class.java) ?: defValue
+            return getValue(FunctionValue.GET_FLOAT, key, defValue, Float::class.java).getDataAsFloat(defValue)
         }
 
         override fun getBoolean(key: String, defValue: Boolean): Boolean {
-            return getValue(FunctionValue.GET_BOOLEAN, key, defValue, Boolean::class.java) ?: defValue
+            return getValue(FunctionValue.GET_BOOLEAN, key, defValue, Boolean::class.java).getDataAsBoolean(defValue)
         }
 
         override fun contains(key: String): Boolean {
             val action = ContractRequest.Action<Any?>(FunctionValue.CONTAINS, key, null)
             val request = ContractRequest(
-                preferenceId, ModeValue.READ, tableName, GroupValue.CONTAINS, listOf<ContractRequest.Action<*>>(action)
+                preferenceId,
+                ModeValue.READ,
+                tableName,
+                GroupValue.CONTAINS,
+                listOf<ContractRequest.Action<*>>(action)
             )
-            val response = RequestTransfer(port).requestWithBlock(context, request, Boolean::class.java)
-            return response.data ?: false
+            val response = RequestTransfer(port).requestWithBlock(context, request)
+            return response.dataAsBoolean
         }
 
         override fun edit(): SharedPreferences.Editor {
@@ -137,19 +148,18 @@ class SPreference(val context: Context, val impl: SharedPreferences) : SharedPre
         }
 
 
-        private fun <T> getValue(function: String, key: String?, defValue: T?, rClass: Class<T>): T? {
+        private fun <T> getValue(function: String, key: String?, defValue: T?, rClass: Class<T>): ContractResponse2 {
             val action = ContractRequest.Action(function, key, defValue)
             val request = ContractRequest(
                 preferenceId, ModeValue.READ, tableName, GroupValue.GET, listOf<ContractRequest.Action<*>>(action)
             )
-            val response = RequestTransfer(port).requestWithBlock(context, request, rClass)
-            val data = response.data
-            return data ?: defValue
+            val response = RequestTransfer(port).requestWithBlock(context, request)
+            return response
         }
 
     }
 
-    class RemoteEditor(val sp: RemotePreferences) : SharedPreferences.Editor {
+    class RemoteEditor(val sp: RemotePreferencesImpl) : SharedPreferences.Editor {
         private val mActionMap = LinkedHashMap<String, ContractRequest.Action<*>>()
         private val atomicClearMask = AtomicInteger()
         override fun putString(key: String, value: String?): SharedPreferences.Editor {
@@ -202,16 +212,17 @@ class SPreference(val context: Context, val impl: SharedPreferences) : SharedPre
             val request = ContractRequest(
                 sp.preferenceId, ModeValue.WRITE, sp.tableName, GroupValue.COMMIT, ArrayList(mActionMap.values)
             )
-            val response = RequestTransfer(sp.port).requestWithBlock(sp.context, request, Boolean::class.java)
-            return response.data != null && response.data!!
+            val response = RequestTransfer(sp.port).requestWithBlock(sp.context, request)
+            return response?.dataAsBoolean ?: false
         }
 
         override fun apply() {
             val request = ContractRequest(
                 sp.preferenceId, ModeValue.WRITE, sp.tableName, GroupValue.COMMIT, ArrayList(mActionMap.values)
             )
-            RequestTransfer(sp.port).request(sp.context, request, Any::class.java, null)
+            RequestTransfer(sp.port).request(sp.context, request, null)
         }
     }
 
 }
+

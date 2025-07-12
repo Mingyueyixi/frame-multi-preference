@@ -1,4 +1,4 @@
-package com.lu.magic.frame.xpreference
+package com.lu.serverapp
 
 import org.junit.Test
 

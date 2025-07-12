@@ -5,11 +5,37 @@ import com.lu.magic.frame.xp.bean.ContractResponse
 import com.lu.magic.frame.xp.util.KxGson
 import com.lu.magic.frame.xp.util.log.XPLogUtil
 import java.net.Socket
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.jvm.Throws
 
 
 class PreferencesSocketClient(val host: String = "127.0.0.1", val port: Int) {
     private var clientThread: Thread? = null
     private var requestCallBackPool: MutableMap<String, CallBack?> = mutableMapOf()
+
+    fun testConnect(): Boolean {
+        var result: Boolean = false
+        try {
+            val latch = CountDownLatch(1)
+            result = false
+            Thread(Runnable {
+                runCatching {
+                    val socket = Socket(host, port)
+                    socket.soTimeout = 5000
+                    result = socket.isConnected
+                    socket.close()
+                    latch.countDown()
+                }.onFailure {
+                    XPLogUtil.e(it)
+                }
+            }).start()
+            latch.await(1000L, TimeUnit.MILLISECONDS)
+        } catch (e: Throwable) {
+            XPLogUtil.e(e)
+        }
+        return result
+    }
 
     fun request(request: ContractRequest, callBack: CallBack) {
         if (clientThread?.isAlive == true) {

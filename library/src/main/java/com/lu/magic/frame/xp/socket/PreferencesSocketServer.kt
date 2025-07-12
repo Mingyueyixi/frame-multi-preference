@@ -13,9 +13,43 @@ import java.net.ServerSocket
 import java.net.Socket
 
 
-class PreferencesSocketServer(val context: Context, val port: Int, val timeout: Int = 5000) {
+class PreferencesSocketServer {
+    private val context: Context
+    private val port: Int
+    private val timeout: Int
+    private val pref: PreferenceServerImpl
     private var serverThread: Thread? = null
-    private val pref = PreferenceServerImpl(context)
+
+    private constructor(context: Context, port: Int, timeout: Int = 5000) {
+        this.context = context
+        this.port = port
+        this.timeout = timeout
+        pref = PreferenceServerImpl(context)
+    }
+
+
+    companion object {
+        @JvmStatic
+        val sCachePool: HashMap<Int, PreferencesSocketServer?> = hashMapOf()
+
+        fun isServerAlive(port: Int): Boolean {
+            return sCachePool[port]?.isAlive() == true
+        }
+
+        @JvmStatic
+        fun getServer(context: Context, port: Int, timeout: Int = 5000): PreferencesSocketServer {
+            var result = sCachePool[port]
+            if (result == null || !result.isAlive()) {
+                result = PreferencesSocketServer(context, port, timeout)
+                sCachePool[port] = result
+            }
+            return result
+        }
+    }
+
+    fun isAlive(): Boolean {
+        return serverThread?.isAlive == true
+    }
 
     @Synchronized
     fun start() {
@@ -28,7 +62,8 @@ class PreferencesSocketServer(val context: Context, val port: Int, val timeout: 
                 while (true) {
                     val socket = ss.accept()
                     socket.soTimeout = timeout
-                    Session(pref, socket).handle()
+
+                    Session(pref, socket).start()
                 }
             }
         }
@@ -37,6 +72,12 @@ class PreferencesSocketServer(val context: Context, val port: Int, val timeout: 
 
 
     class Session(val pref: PreferenceServerImpl, override val socket: Socket) : BaseSession(socket) {
+
+        fun start() {
+            Thread{
+                handle()
+            }.start()
+        }
 
         fun handle() {
             initStreamIf()
@@ -68,7 +109,9 @@ class PreferencesSocketServer(val context: Context, val port: Int, val timeout: 
                 }
                 sendToClient(json.toString())
             }
+//            让客户端关闭
             IOUtil.closeQuietly(bWriter, oWriter, oStream, bReader, iReader, iStream, socket)
+            XPLogUtil.i(">>>socket server close: " ,  socket)
         }
 
         private fun sendToClient(text: String) {
@@ -80,5 +123,6 @@ class PreferencesSocketServer(val context: Context, val port: Int, val timeout: 
             }
         }
     }
+
 
 }
