@@ -11,7 +11,7 @@ import com.lu.magic.frame.xp.annotation.ModeValue
 import com.lu.magic.frame.xp.annotation.PreferenceIdValue
 import com.lu.magic.frame.xp.bean.ContractRequest
 import com.lu.magic.frame.xp.broadcast.BRConfig
-import com.lu.magic.frame.xp.broadcast.ClientSession
+import com.lu.magic.frame.xp.broadcast.BClientSession
 import com.lu.magic.frame.xp.broadcast.PreferenceClientReceiver
 import com.lu.magic.frame.xp.broadcast.PreferenceServerReceiver
 import com.lu.magic.frame.xp.util.log.XPLogUtil
@@ -62,7 +62,7 @@ class BRPreference(
             GroupValue.CONTAINS,
             listOf<ContractRequest.Action<*>>(action)
         )
-        val response = ClientSession(config).requestWithBlock(context, request, Boolean::class.java)
+        val response = BClientSession(config).requestWithBlock(context, request, Boolean::class.java)
         return response.data ?: false
     }
 
@@ -87,7 +87,7 @@ class BRPreference(
             GroupValue.GET,
             listOf<ContractRequest.Action<*>>(action)
         )
-        val response = ClientSession(config).requestWithBlock(context, request, rClass)
+        val response = BClientSession(config).requestWithBlock(context, request, rClass)
         val data = response.data
         return data ?: defValue
     }
@@ -145,7 +145,7 @@ class BRPreference(
             val request = ContractRequest(
                 preferenceId, ModeValue.WRITE, tableName, GroupValue.COMMIT, ArrayList(mActionMap.values)
             )
-            val response = ClientSession(config).requestWithBlock(context, request, Boolean::class.java)
+            val response = BClientSession(config).requestWithBlock(context, request, Boolean::class.java)
             return response.data != null && response.data!!
         }
 
@@ -153,7 +153,7 @@ class BRPreference(
             val request = ContractRequest(
                 preferenceId, ModeValue.WRITE, tableName, GroupValue.COMMIT, ArrayList(mActionMap.values)
             )
-            ClientSession(config).request(context, request, Any::class.java, null)
+            BClientSession(config).request(context, request, Any::class.java, null)
         }
     }
 

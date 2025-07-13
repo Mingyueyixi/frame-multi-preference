@@ -11,20 +11,26 @@ import java.util.Map;
 import java.util.Set;
 
 public class ContractResponse2 {
-    public Throwable exception;
     private JSONObject mSource;
 
     public void setException(Throwable exception) {
-        this.exception = exception;
+        JSONX.putOpt(mSource, "exception", exception);
+    }
+
+    public Exception getException() {
+        Object msg = JSONX.opt(mSource, "exception");
+        if (msg instanceof String) {
+            return new Exception((String) msg);
+        }
+        return null;
+    }
+
+    public String getResponseId() {
+        return JSONX.optString(mSource, "responseId");
     }
 
     public <T> T getData() {
-        try {
-            return (T) mSource.get("data");
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        return null;
+        return (T) JSONX.opt(mSource, "data");
     }
 
     public void setData(Object data) {
@@ -68,9 +74,6 @@ public class ContractResponse2 {
         return JSONX.toMap(JSONX.optJSONObject(mSource, "data"));
     }
 
-    public Throwable getException() {
-        return exception;
-    }
 
     public ContractResponse2() {
         this(null, null);
@@ -78,7 +81,7 @@ public class ContractResponse2 {
 
     public ContractResponse2(Object data, Throwable exception) {
         this.mSource = new JSONObject();
-        this.exception = exception;
+        this.setException(exception);
         this.setData(data);
     }
 
@@ -102,5 +105,7 @@ public class ContractResponse2 {
         return null;
     }
 
-
+    public String toJson() {
+        return mSource.toString();
+    }
 }

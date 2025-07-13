@@ -13,7 +13,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
-class ClientSession(val config: BRConfig) {
+class BClientSession(val config: BRConfig) {
     companion object {
         @JvmStatic
         val onReceivePool = mutableMapOf<String, OnReceiverListener>()

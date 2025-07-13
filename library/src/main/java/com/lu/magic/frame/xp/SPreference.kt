@@ -9,7 +9,6 @@ import com.lu.magic.frame.xp.annotation.ModeValue
 import com.lu.magic.frame.xp.annotation.PreferenceIdValue
 import com.lu.magic.frame.xp.bean.ContractRequest
 import com.lu.magic.frame.xp.bean.ContractResponse2
-import com.lu.magic.frame.xp.broadcast.ClientSession
 import com.lu.magic.frame.xp.socket.PreferencesSocketClient
 import com.lu.magic.frame.xp.socket.PreferencesSocketServer
 import com.lu.magic.frame.xp.socket.RequestTransfer
@@ -45,7 +44,7 @@ open class SPreference(val context: Context, val impl: SharedPreferences) : Shar
         }
     }
 
-    override fun getAll(): MutableMap<String, *> {
+    override fun getAll(): MutableMap<String, *>? {
         return impl.all
     }
 
@@ -94,7 +93,7 @@ open class SPreference(val context: Context, val impl: SharedPreferences) : Shar
         val context: Context, val tableName: String, @PreferenceIdValue val preferenceId: String, val port: Int
     ) : SharedPreferences {
 
-        override fun getAll(): Map<String, *> {
+        override fun getAll(): Map<String, *>? {
             return getValue(FunctionValue.GET_ALL, null, HashMap<Any, Any>(), Map::class.java).dataAsMapString
         }
 

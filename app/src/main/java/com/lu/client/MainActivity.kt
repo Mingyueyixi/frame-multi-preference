@@ -49,7 +49,9 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<View>(R.id.btn_read_all).setOnClickListener {
             try {
-                val json = JSONObject(sPreference.all)
+                var all : MutableMap<String, *>? = sPreference.all
+                if (all == null) all = HashMap<String,  Any?>()
+                val json = JSONObject(all)
                 mEtResult.setText(json.toString(2))
             } catch (e: JSONException) {
                 Toast.makeText(this, "解析失败", Toast.LENGTH_SHORT).show()
@@ -76,6 +78,10 @@ class MainActivity : AppCompatActivity() {
             value = json.optString("value")
         } catch (e: JSONException) {
             Toast.makeText(this, "输入格式错误", Toast.LENGTH_SHORT).show()
+        }
+        if (key == null) {
+            Toast.makeText(this, "请输入key", Toast.LENGTH_SHORT).show()
+            return
         }
         sPreference.edit().putString(key, value).commit().let {
             if (it) {

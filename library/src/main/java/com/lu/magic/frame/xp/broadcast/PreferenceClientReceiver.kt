@@ -11,7 +11,7 @@ class PreferenceClientReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
         val requestId = intent?.getStringExtra("requestId")
-        val func = ClientSession.onReceivePool.remove(requestId)
+        val func = BClientSession.onReceivePool.remove(requestId)
         func?.onReceive(intent)
     }
 
