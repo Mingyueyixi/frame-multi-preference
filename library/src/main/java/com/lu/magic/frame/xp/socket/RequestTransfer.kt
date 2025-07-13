@@ -30,13 +30,13 @@ class RequestTransfer(val port: Int) {
             latch.await(5L, TimeUnit.SECONDS)
         }.onFailure {
             XPLogUtil.w(it)
-            response = ContractResponse2(null, it)
+            response = ContractResponse2(request.requestId, null, it)
         }
         if (!isSuccessCallBack) {
             XPLogUtil.w("Request Session is TimeOut for await")
-            response = ContractResponse2(null, TimeoutException("wait response timeout!"))
+            response = ContractResponse2(request.requestId, null, TimeoutException("wait response timeout!"))
         }
-        return response ?: ContractResponse2(null, null)
+        return response ?: ContractResponse2(request.requestId, null, null)
     }
 
 

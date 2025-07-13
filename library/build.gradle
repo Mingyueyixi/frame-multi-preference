@@ -31,7 +31,7 @@ afterEvaluate {
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar", "*.aar"])
-    implementation deps['com.google.code.gson:gson']
+    compileOnly deps['com.google.code.gson:gson']
     compileOnly deps['com.tencent:mmkv-static']
     implementation deps['androidx.appcompat:appcompat']
 

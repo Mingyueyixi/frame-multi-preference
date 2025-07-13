@@ -7,29 +7,30 @@ import com.lu.magic.frame.xp.annotation.GroupValue
 import com.lu.magic.frame.xp.annotation.ModeValue
 import com.lu.magic.frame.xp.annotation.PreferenceIdValue
 import com.lu.magic.frame.xp.bean.ContractRequest
-import com.lu.magic.frame.xp.bean.ContractResponse
+import com.lu.magic.frame.xp.bean.ContractResponse2
 import com.tencent.mmkv.MMKV
 import java.io.Serializable
 
 class PreferenceServerImpl(val context: Context) {
 
 
-    fun call(request: ContractRequest): ContractResponse<*>? {
-        var response: ContractResponse<*>? = null
+    fun call(request: ContractRequest): ContractResponse2 {
+        var response: ContractResponse2 = ContractResponse2(request.requestId, null,  null)
         if (request.actions == null || request.actions.size == 0) {
-            return null
+            response.setException(Exception("request actions is " + request.actions))
+            return response
         }
         when (request.mode) {
             ModeValue.READ -> response = readValue(request)
             ModeValue.WRITE -> response = writeValue(request)
             else -> {}
         }
-        response?.responseId = request.requestId
+        response.responseId = request.requestId
         return response
     }
 
 
-    fun readValue(request: ContractRequest): ContractResponse<*>? {
+    fun readValue(request: ContractRequest): ContractResponse2 {
         //偏好设置读取时，只有一次操作
         val bundleAction = request.actions[0]
         val group = request.group
@@ -40,7 +41,7 @@ class PreferenceServerImpl(val context: Context) {
             GroupValue.CONTAINS ->                 //TODO fix bug
                 resultV = containsKey(request.preferenceId, request.table, key)
         }
-        return ContractResponse(resultV, null)
+        return ContractResponse2(request.requestId, resultV, null)
     }
 
     private fun containsKey(@PreferenceIdValue preferenceId: String, table: String, key: String): Boolean {
@@ -90,27 +91,27 @@ class PreferenceServerImpl(val context: Context) {
     }
 
 
-    private fun writeValue(request: ContractRequest): ContractResponse<*>? {
+    private fun writeValue(request: ContractRequest): ContractResponse2 {
         when (request.group) {
             GroupValue.COMMIT -> return commitValue(request)
             GroupValue.APPLY -> return applyValue(request)
             else -> {}
         }
-        return ContractResponse<Any?>(null, null)
+        return ContractResponse2(request.requestId, null, null)
     }
 
-    private fun commitValue(request: ContractRequest): ContractResponse<Boolean> {
+    private fun commitValue(request: ContractRequest): ContractResponse2 {
         val editor = openEditor(request.preferenceId, request.table)
         putValue(editor, request.actions)
         val result = editor.commit()
-        return ContractResponse(result, null)
+        return ContractResponse2(request.requestId, result, null)
     }
 
-    private fun applyValue(request: ContractRequest): ContractResponse<Void?> {
+    private fun applyValue(request: ContractRequest): ContractResponse2 {
         val editor = openEditor(request.preferenceId, request.table)
         putValue(editor, request.actions)
         editor.apply()
-        return ContractResponse(null, null)
+        return ContractResponse2(request.requestId, null, null)
     }
 
     private fun putValue(editor: SharedPreferences.Editor, bundleActions: List<ContractRequest.Action<*>>) {

@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 import com.lu.magic.frame.xp.bean.ContractRequest;
 import com.lu.magic.frame.xp.PreferenceServerImpl;
 import com.lu.magic.frame.xp.bean.ContractResponse;
+import com.lu.magic.frame.xp.bean.ContractResponse2;
 
 /**
  * content://<authority>/<data_type>/<id>
@@ -33,17 +34,24 @@ public class PreferenceServerProvider extends BaseCallProvider {
     @Nullable
     @Override
     public Bundle call(@NonNull String method, @Nullable String arg, @Nullable Bundle extras) {
-        ContractResponse<?> response = null;
+        ContractResponse2 response = null;
+        initPreferenceImplIfNeed(getContext());
+        ContractRequest request = null;
         try {
-            initPreferenceImplIfNeed(getContext());
-            ContractRequest request = ContractUtil.toContractRequest(extras);
+            request = ContractUtil.toContractRequest(extras);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
             response = preferenceServerImpl.call(request);
         } catch (Exception e) {
             e.printStackTrace();
-            response = new ContractResponse<>(null, e);
+            if (request != null) {
+                response = new ContractResponse2(request.requestId, null, e);
+            }
         }
         if (response == null) {
-            response = new ContractResponse<>();
+            response = new ContractResponse2(request != null ? request.requestId : "", null, null);
         }
         return ContractUtil.toResponseBundle(response);
     }

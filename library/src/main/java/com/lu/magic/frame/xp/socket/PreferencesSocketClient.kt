@@ -2,12 +2,10 @@ package com.lu.magic.frame.xp.socket
 
 import com.lu.magic.frame.xp.bean.ContractRequest
 import com.lu.magic.frame.xp.bean.ContractResponse2
-import com.lu.magic.frame.xp.util.KxGson
 import com.lu.magic.frame.xp.util.log.XPLogUtil
 import java.net.Socket
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import kotlin.jvm.Throws
 
 
 class PreferencesSocketClient(val host: String = "127.0.0.1", val port: Int) {
@@ -48,7 +46,7 @@ class PreferencesSocketClient(val host: String = "127.0.0.1", val port: Int) {
             }.onFailure {
                 try {
                     XPLogUtil.e(it)
-                    val eText = ContractResponse2(null, it).toJson();
+                    val eText = ContractResponse2(request.requestId, null, it).toJson();
                     requestCallBackPool.remove(request.requestId)?.onResponse(eText)
                 } catch (e: Exception) {
                     XPLogUtil.e(e)
@@ -64,8 +62,7 @@ class PreferencesSocketClient(val host: String = "127.0.0.1", val port: Int) {
         fun handle(request: ContractRequest) {
             initStreamIf()
             runCatching {
-                val json = KxGson.GSON.toJson(request)
-                sendToServer(json)
+                sendToServer(request.toJson())
             }
             runCatching {
                 bReader?.let {

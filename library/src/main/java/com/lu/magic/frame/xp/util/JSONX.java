@@ -2,12 +2,16 @@ package com.lu.magic.frame.xp.util;
 
 
 import androidx.core.util.Predicate;
+import androidx.core.util.Supplier;
+
+import com.lu.magic.frame.xp.bean.ContractRequest;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -199,6 +203,19 @@ public class JSONX {
             return;
         }
         try {
+            if (value instanceof Map) {
+                try {
+                    value = new JSONObject((Map) value);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else if (value instanceof Collection) {
+                try {
+                    value = new JSONArray((Collection) value);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
             jsonObject.putOpt(key, value);
         } catch (JSONException e) {
             e.printStackTrace();
@@ -248,6 +265,7 @@ public class JSONX {
         }
         return list;
     }
+
 
     public static Object filter(JSONArray jsonArray, boolean reverse, Predicate<Object> filter) {
         if (JSONX.isEmpty(jsonArray)) {
@@ -347,5 +365,57 @@ public class JSONX {
             result.add(arr.optString(i));
         }
         return result;
+    }
+
+    public static <T extends JsonObjectInterface> JSONArray toJsonArray(List<T> list) {
+        if (list == null) {
+            return null;
+        }
+        JSONArray result = new JSONArray();
+        for (T action : list) {
+            result.put(action.toJsonObject());
+        }
+        return result;
+    }
+    public static <T extends JsonObjectInterface> List<T> toList(JSONArray jsonArray, Supplier<T> beanCreateFactory) {
+        if (jsonArray == null) {
+            return null;
+        }
+        if (beanCreateFactory == null) {
+            return null;
+        }
+        List<T> result = new ArrayList<>();
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject jsonObject = jsonArray.optJSONObject(i);
+            T t = beanCreateFactory.get();
+            t.fromJsonObject(jsonObject);
+            result.add(t);
+        }
+        return result;
+    }
+
+    public static <T extends JsonObjectInterface> List<T> toList(JSONArray jsonArray, Class<T> tClass) {
+        return toList(jsonArray, () -> {
+            try {
+                return tClass.newInstance();
+            } catch (IllegalAccessException | InstantiationException e) {
+                 e.printStackTrace();
+            }
+            return null;
+        });
+    }
+
+    public static JSONObject toJsonObject(String json) {
+        try {
+            return new JSONObject(json);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public interface JsonObjectInterface {
+        JSONObject toJsonObject();
+        JsonObjectInterface fromJsonObject(JSONObject jsonObject);
     }
 }

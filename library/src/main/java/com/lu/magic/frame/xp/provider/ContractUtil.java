@@ -7,6 +7,7 @@ import android.os.Parcelable;
 
 import com.lu.magic.frame.xp.bean.ContractRequest;
 import com.lu.magic.frame.xp.bean.ContractResponse;
+import com.lu.magic.frame.xp.bean.ContractResponse2;
 
 import java.io.InvalidClassException;
 import java.io.Serializable;
@@ -100,6 +101,24 @@ public class ContractUtil {
             } catch (Exception e) {
                 e.printStackTrace();
                 bundle.putSerializable(DtoKey.THROW, response.exception);
+            }
+        }
+        return bundle;
+    }
+
+    public static Bundle toResponseBundle(ContractResponse2 response) {
+        Bundle bundle = new Bundle();
+        bundle.putSerializable(DtoKey.THROW, response.getException());
+        if (response.getData() instanceof Serializable) {
+            bundle.putSerializable(DtoKey.DATA, (Serializable) response.getData());
+        } else if (response.getData() instanceof Parcelable) {
+            bundle.putParcelable(DtoKey.DATA, (Parcelable) response.getData());
+        } else {
+            try {
+                throw new InvalidClassException(response.getData().getClass() + " is not support !!!");
+            } catch (Exception e) {
+                e.printStackTrace();
+                bundle.putSerializable(DtoKey.THROW, e);
             }
         }
         return bundle;

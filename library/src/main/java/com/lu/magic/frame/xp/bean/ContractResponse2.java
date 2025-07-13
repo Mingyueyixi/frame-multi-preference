@@ -13,6 +13,21 @@ import java.util.Set;
 public class ContractResponse2 {
     private JSONObject mSource;
 
+    private ContractResponse2(JSONObject jsonObject) {
+        if (jsonObject == null) {
+            jsonObject = new JSONObject();
+        }
+        this.mSource = jsonObject;
+    }
+
+    public ContractResponse2(String responseId, Object data, Throwable exception) {
+        this(new JSONObject());
+        this.setResponseId(responseId);
+        this.setData(data);
+        this.setException(exception);
+    }
+
+
     public void setException(Throwable exception) {
         JSONX.putOpt(mSource, "exception", exception);
     }
@@ -27,6 +42,10 @@ public class ContractResponse2 {
 
     public String getResponseId() {
         return JSONX.optString(mSource, "responseId");
+    }
+
+    public void setResponseId(String responseId) {
+        JSONX.put(mSource, "responseId", responseId);
     }
 
     public <T> T getData() {
@@ -74,23 +93,6 @@ public class ContractResponse2 {
         return JSONX.toMap(JSONX.optJSONObject(mSource, "data"));
     }
 
-
-    public ContractResponse2() {
-        this(null, null);
-    }
-
-    public ContractResponse2(Object data, Throwable exception) {
-        this.mSource = new JSONObject();
-        this.setException(exception);
-        this.setData(data);
-    }
-
-    public ContractResponse2(JSONObject jsonObject) {
-        if (jsonObject == null) {
-            jsonObject = new JSONObject();
-        }
-        this.mSource = jsonObject;
-    }
 
     public static ContractResponse2 fromJson(String json) {
         if (TextUtils.isEmpty(json)) {

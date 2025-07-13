@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.lu.magic.frame.xp.bean.ContractRequest
 import com.lu.magic.frame.xp.PreferenceServerImpl
-import com.lu.magic.frame.xp.bean.ContractResponse
+import com.lu.magic.frame.xp.bean.ContractResponse2
 import com.lu.magic.frame.xp.util.KxGson
 import com.lu.magic.frame.xp.util.log.XPLogUtil
 
@@ -26,13 +26,12 @@ class PreferenceServerReceiver(val config: BRConfig) : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
         initPreferenceImplIfNeed(context)
-        var response: ContractResponse<*>? = null
+        var response: ContractResponse2? = null
         val requestJson = intent?.getStringExtra("request")
         XPLogUtil.i("receiver:", requestJson)
         val request: ContractRequest? = try {
-            KxGson.GSON.fromJson(requestJson, ContractRequest::class.java)
+            ContractRequest.fromJson(requestJson)
         } catch (e: Exception) {
-            response = ContractResponse(false, e)
             null
         }
         if (request != null) {

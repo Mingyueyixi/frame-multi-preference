@@ -3,11 +3,10 @@ package com.lu.magic.frame.xp.socket
 
 import android.content.Context
 import android.util.Log
-import com.google.gson.JsonObject
 import com.lu.magic.frame.xp.PreferenceServerImpl
 import com.lu.magic.frame.xp.bean.ContractRequest
+import com.lu.magic.frame.xp.bean.ContractResponse2
 import com.lu.magic.frame.xp.util.IOUtil
-import com.lu.magic.frame.xp.util.KxGson
 import com.lu.magic.frame.xp.util.log.XPLogUtil
 import java.net.ServerSocket
 import java.net.Socket
@@ -98,16 +97,15 @@ class PreferencesSocketServer {
                     }
                 }
                 XPLogUtil.i(">>>socket client send: ", line)
-                val request = KxGson.GSON.fromJson(line, ContractRequest::class.java)
-                pref.call(request).let { KxGson.GSON.toJson(it) }
+                val request = ContractRequest.fromJson(line)
+                pref.call(request).let {
+                    it.toJson()
+                }
             }.onSuccess {
                 sendToClient(it)
             }.onFailure {
                 //read timeout or other exception
-                val json = JsonObject().apply {
-                    addProperty("exception", Log.getStackTraceString(it))
-                }
-                sendToClient(json.toString())
+                sendToClient(ContractResponse2(null, null, it).toJson())
             }
 //            让客户端关闭
             IOUtil.closeQuietly(bWriter, oWriter, oStream, bReader, iReader, iStream, socket)
