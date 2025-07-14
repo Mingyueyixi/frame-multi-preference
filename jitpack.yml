@@ -1,0 +1,9 @@
+jdk:
+- openjdk17
+before_install:
+   - chmod +x ./gradlew
+   - sed -i '/^distributionUrl=/s#https\\://mirrors.cloud.tencent.com/gradle#https\\://services.gradle.org/distributions#' gradle/wrapper/gradle-wrapper.properties
+install:
+   - ./gradlew clean -xtest -xlint assembleRelease publishReleasePublicationToMavenLocal
+env:
+   MYVAR: "custom environment variable"
